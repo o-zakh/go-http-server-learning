@@ -18,7 +18,14 @@ func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
 }
 
 func (cfg *apiConfig) hitsCounter(w http.ResponseWriter, r *http.Request) {
-	w.Write(fmt.Appendf([]byte{}, "Hits: %d", cfg.fileserverHits.Load()))
+	w.Header().Set("Content-Type", "text/html")
+	w.Write(fmt.Appendf([]byte{}, `
+<html>
+	<body>
+		<h1>Welcome, Chirpy Admin</h1>
+		<p>Chirpy has been visited %d times!</p>
+	</body>
+</html>`, cfg.fileserverHits.Load()))
 }
 
 func (cfg *apiConfig) hitsReset(w http.ResponseWriter, r *http.Request) {
@@ -38,8 +45,8 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
 	})
-	mux.HandleFunc("GET /api/metrics", apiCfg.hitsCounter)
-	mux.HandleFunc("POST /api/reset", apiCfg.hitsReset)
+	mux.HandleFunc("GET /admin/metrics", apiCfg.hitsCounter)
+	mux.HandleFunc("POST /admin/reset", apiCfg.hitsReset)
 
 	s := &http.Server{
 		Addr:    ":8080",

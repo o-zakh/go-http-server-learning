@@ -2,15 +2,11 @@ package main
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"sync/atomic"
-	"time"
-
-	"github.com/google/uuid"
 
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
@@ -44,43 +40,6 @@ func (cfg *apiConfig) hitsReset(w http.ResponseWriter, r *http.Request) {
 	cfg.fileserverHits.Store(0)
 }
 
-func (cfg *apiConfig) createUser(w http.ResponseWriter, r *http.Request) {
-	type parameters struct {
-		Email string `json:"email"`
-	}
-	decoder := json.NewDecoder(r.Body)
-	params := parameters{}
-	err := decoder.Decode(&params)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
-	}
-	dbUser, err := cfg.dbQueries.CreateUser(r.Context(), params.Email)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldn't load user parameters", err)
-	}
-	newUser := User{
-		ID:        dbUser.ID,
-		CreatedAt: dbUser.CreatedAt,
-		UpdatedAt: dbUser.UpdatedAt,
-		Email:     dbUser.Email,
-	}
-	respondWithJSON(w, http.StatusCreated, newUser)
-}
-
-func (cfg *apiConfig) deleteUser(w http.ResponseWriter, r *http.Request) {
-	if os.Getenv("PLATFORM") != "dev" {
-		respondWithError(w, http.StatusForbidden, "Only accessible via an admin device", nil)
-	}
-	cfg.dbQueries.DeleteUsers(r.Context())
-}
-
-type User struct {
-	ID        uuid.UUID `json:"id"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	Email     string    `json:"email"`
-}
-
 func main() {
 
 	godotenv.Load()
@@ -110,9 +69,10 @@ func main() {
 	})
 	mux.HandleFunc("GET /admin/metrics", apiCfg.hitsCounter)
 	// mux.HandleFunc("POST /admin/reset", apiCfg.hitsReset)
-	mux.HandleFunc("POST /api/validate_chirp", validate_handler)
+	// mux.HandleFunc("POST /api/validate_chirp", validate_handler)
 	mux.HandleFunc("POST /api/users", apiCfg.createUser)
 	mux.HandleFunc("POST /admin/reset", apiCfg.deleteUser)
+	mux.HandleFunc("POST /api/chirps", apiCfg.createChirp)
 
 	s := &http.Server{
 		Addr:    ":8080",

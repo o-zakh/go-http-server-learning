@@ -67,12 +67,16 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
 	})
+
 	mux.HandleFunc("GET /admin/metrics", apiCfg.hitsCounter)
+	mux.HandleFunc("POST /admin/reset", apiCfg.deleteUser)
+
 	mux.HandleFunc("GET /api/chirps", apiCfg.getChirps)
 	mux.HandleFunc("GET /api/chirps/{chirpID}", apiCfg.getChirp)
-	mux.HandleFunc("POST /api/users", apiCfg.createUser)
-	mux.HandleFunc("POST /admin/reset", apiCfg.deleteUser)
 	mux.HandleFunc("POST /api/chirps", apiCfg.createChirp)
+
+	mux.HandleFunc("POST /api/users", apiCfg.createUser)
+	mux.HandleFunc("POST /api/login", apiCfg.loginUser)
 
 	s := &http.Server{
 		Addr:    ":8080",

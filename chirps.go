@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/o-zakh/go-http-server-learning/internal/auth"
 	"github.com/o-zakh/go-http-server-learning/internal/database"
 )
 
@@ -19,8 +20,7 @@ type Chirp struct {
 
 func (cfg *apiConfig) createChirp(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
-		Body   string    `json:"body"`
-		UserID uuid.UUID `json:"user_id"`
+		Body string `json:"body"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -28,6 +28,19 @@ func (cfg *apiConfig) createChirp(w http.ResponseWriter, r *http.Request) {
 	err := decoder.Decode(&params)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
+		return
+	}
+
+	BearerToken, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Authorization token is missing", err)
+		return
+	}
+
+	jwtID, err := auth.ValidateJWT(BearerToken, cfg.tokenSecret)
+
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Authorization token is invalid", err)
 		return
 	}
 
@@ -40,7 +53,7 @@ func (cfg *apiConfig) createChirp(w http.ResponseWriter, r *http.Request) {
 		params.Body = profane_replacement(params.Body)
 		dbChirp, err := cfg.dbQueries.CreateChirp(r.Context(), database.CreateChirpParams{
 			Body:   params.Body,
-			UserID: params.UserID,
+			UserID: jwtID,
 		})
 		if err != nil {
 			respondWithError(w, http.StatusInternalServerError, "Couldn't load user parameters", err)

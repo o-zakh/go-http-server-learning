@@ -12,11 +12,12 @@ import (
 )
 
 type User struct {
-	ID        uuid.UUID `json:"id"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	Email     string    `json:"email"`
-	Token     string    `json:"token"`
+	ID           uuid.UUID `json:"id"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+	Email        string    `json:"email"`
+	Token        string    `json:"token"`
+	RefreshToken string    `json:"refresh_token"`
 }
 
 func (cfg *apiConfig) createUser(w http.ResponseWriter, r *http.Request) {
@@ -58,9 +59,8 @@ func (cfg *apiConfig) createUser(w http.ResponseWriter, r *http.Request) {
 
 func (cfg *apiConfig) loginUser(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
-		Password         string `json:"password"`
-		Email            string `json:"email"`
-		ExpiresInSeconds int    `json:"expires_in_seconds"`
+		Password string `json:"password"`
+		Email    string `json:"email"`
 	}
 	decoder := json.NewDecoder(r.Body)
 	params := parameters{}
@@ -78,22 +78,36 @@ func (cfg *apiConfig) loginUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pswd_match, err := auth.CheckPasswordHash(params.Password, dbUser.HashedPassword)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Incorrect password", err)
+		return
+	}
 
 	if pswd_match {
-		if params.ExpiresInSeconds > 3600 || params.ExpiresInSeconds == 0 {
-			params.ExpiresInSeconds = 3600
-		}
-		newToken, err := auth.MakeJWT(dbUser.ID, cfg.tokenSecret, time.Duration(params.ExpiresInSeconds)*time.Second)
+		newToken, err := auth.MakeJWT(dbUser.ID, cfg.tokenSecret, time.Hour)
 		if err != nil {
 			respondWithError(w, http.StatusInternalServerError, "Error generating a JWT", err)
 			return
 		}
+
+		refreshToken := auth.MakeRefreshToken()
+
+		dbRefreshToken, err := cfg.dbQueries.CreateRefreshToken(r.Context(), database.CreateRefreshTokenParams{
+			Token:  refreshToken,
+			UserID: dbUser.ID,
+		})
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Error generating a Refresh Token", err)
+			return
+		}
+
 		respondWithJSON(w, http.StatusOK, User{
-			ID:        dbUser.ID,
-			CreatedAt: dbUser.CreatedAt,
-			UpdatedAt: dbUser.UpdatedAt,
-			Email:     dbUser.Email,
-			Token:     newToken,
+			ID:           dbUser.ID,
+			CreatedAt:    dbUser.CreatedAt,
+			UpdatedAt:    dbUser.UpdatedAt,
+			Email:        dbUser.Email,
+			Token:        newToken,
+			RefreshToken: dbRefreshToken.Token,
 		})
 	} else {
 		respondWithError(w, http.StatusUnauthorized, "User not found", err)

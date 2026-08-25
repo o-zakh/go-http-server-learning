@@ -1,6 +1,8 @@
 package auth
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"net/http"
 	"strings"
@@ -54,4 +56,10 @@ func GetBearerToken(headers http.Header) (string, error) {
 	} else {
 		return "", fmt.Errorf("Error cutting token")
 	}
+}
+
+func MakeRefreshToken() string {
+	key := make([]byte, 32)
+	rand.Read(key)
+	return hex.EncodeToString(key)
 }

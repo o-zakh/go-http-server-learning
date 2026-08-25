@@ -31,13 +31,13 @@ func (cfg *apiConfig) createChirp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	BearerToken, err := auth.GetBearerToken(r.Header)
+	bearerToken, err := auth.GetBearerToken(r.Header)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, "Authorization token is missing", err)
 		return
 	}
 
-	jwtID, err := auth.ValidateJWT(BearerToken, cfg.tokenSecret)
+	jwtID, err := auth.ValidateJWT(bearerToken, cfg.tokenSecret)
 
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, "Authorization token is invalid", err)

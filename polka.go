@@ -5,13 +5,9 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/o-zakh/go-http-server-learning/internal/auth"
 	"github.com/o-zakh/go-http-server-learning/internal/database"
 )
-
-// type UserUpgradeParams struct {
-// 	ID          uuid.UUID
-// 	IsChirpyRed bool
-// }
 
 func (cfg *apiConfig) webhook(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
@@ -26,6 +22,18 @@ func (cfg *apiConfig) webhook(w http.ResponseWriter, r *http.Request) {
 	err := decoder.Decode(&params)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
+		return
+	}
+
+	apiKey, err := auth.GetAPIKey(r.Header)
+
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Invalid API Key", err)
+		return
+	}
+
+	if cfg.polkaKey != apiKey {
+		respondWithError(w, http.StatusInternalServerError, "Error while extracting API Key", err)
 		return
 	}
 

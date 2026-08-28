@@ -18,3 +18,8 @@ ORDER BY created_at;
 SELECT *
 FROM chirps
 WHERE id = $1;
+
+-- name: DeleteChirp :exec
+DELETE
+from chirps
+WHERE id = $1 and user_id = $2;

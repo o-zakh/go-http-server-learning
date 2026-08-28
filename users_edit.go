@@ -18,6 +18,7 @@ type User struct {
 	Email        string    `json:"email"`
 	Token        string    `json:"token"`
 	RefreshToken string    `json:"refresh_token"`
+	IsChirpyRed  bool      `json:"is_chirpy_red"`
 }
 
 func (cfg *apiConfig) createUser(w http.ResponseWriter, r *http.Request) {
@@ -49,10 +50,11 @@ func (cfg *apiConfig) createUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	newUser := User{
-		ID:        dbUser.ID,
-		CreatedAt: dbUser.CreatedAt,
-		UpdatedAt: dbUser.UpdatedAt,
-		Email:     dbUser.Email,
+		ID:          dbUser.ID,
+		CreatedAt:   dbUser.CreatedAt,
+		UpdatedAt:   dbUser.UpdatedAt,
+		Email:       dbUser.Email,
+		IsChirpyRed: dbUser.IsChirpyRed,
 	}
 	respondWithJSON(w, http.StatusCreated, newUser)
 }
@@ -108,6 +110,7 @@ func (cfg *apiConfig) loginUser(w http.ResponseWriter, r *http.Request) {
 			Email:        dbUser.Email,
 			Token:        newToken,
 			RefreshToken: dbRefreshToken.Token,
+			IsChirpyRed:  dbUser.IsChirpyRed,
 		})
 	} else {
 		respondWithError(w, http.StatusUnauthorized, "User not found", err)
@@ -162,9 +165,10 @@ func (cfg *apiConfig) updateLogin(w http.ResponseWriter, r *http.Request) {
 	})
 
 	respondWithJSON(w, http.StatusOK, User{
-		ID:        dbUser.ID,
-		CreatedAt: dbUser.CreatedAt,
-		UpdatedAt: dbUser.UpdatedAt,
-		Email:     dbUser.Email,
+		ID:          dbUser.ID,
+		CreatedAt:   dbUser.CreatedAt,
+		UpdatedAt:   dbUser.UpdatedAt,
+		Email:       dbUser.Email,
+		IsChirpyRed: dbUser.IsChirpyRed,
 	})
 }
